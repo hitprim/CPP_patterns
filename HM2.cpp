@@ -1,10 +1,8 @@
 ﻿#include <iostream>
+#include <fstream>
 #include <vector>
-#include <string>
-
-
-
-// Abstract Factory =====================================
+#include <list>
+using namespace std;
 class Pizza {
 public:
     virtual void prepare(std::string) {};
@@ -13,258 +11,274 @@ public:
     virtual void box() {};
 };
 
-class CheesePizza : public Pizza {};
-class GreekPizza : public Pizza {};
-class PepperoniPizza : public Pizza {};
+class CheesePizza :public Pizza {};
+class GreekPizza :public Pizza {};
+class PepperoniPizza :public Pizza {};
+
+
+// Абстрактная фабрика
+class PizzaFactory {
+public:
+    virtual Pizza* createPizza() = 0;
+};
+
+// Конкретные фабрики
+class CheesePizzaFactory : public PizzaFactory {
+public:
+    Pizza* createPizza() override {
+        return new CheesePizza;
+    }
+};
+
+class GreekPizzaFactory : public PizzaFactory {
+public:
+    Pizza* createPizza() override {
+        return new GreekPizza;
+    }
+};
+
+class PepperoniPizzaFactory : public PizzaFactory {
+public:
+    Pizza* createPizza() override {
+        return new PepperoniPizza;
+    }
+};
+
 
 Pizza* orderPizza(std::string type) {
+    PizzaFactory* factory = nullptr;
     Pizza* pizza = nullptr;
     if (type == "cheese") {
-        pizza = new CheesePizza;
+        factory = new CheesePizzaFactory;
     }
     else if (type == "greek") {
-        pizza = new GreekPizza;
+        factory = new GreekPizzaFactory;
     }
     else if (type == "pepperoni") {
-        pizza = new PepperoniPizza;
+        factory = new PepperoniPizzaFactory;
+    }
+    if (factory != nullptr) {
+        pizza = factory->createPizza();
     }
     return pizza;
 }
 
-class UniversalPizza : public Pizza {
-    void prepare(std::string p) override {
-        std::cout << "Prepare: " << p << std::endl;
-    }
+//======================================================================
 
-    void bake() override {
-        std::cout << "Pizza is bake" << std::endl;
-    }
 
-    void cut() override {
-        std::cout << "Pizza is cut" << std::endl;
-    }
-
-    void box() override {
-        std::cout << "Pizza in the box!" << std::endl;
-    }
-};
-
-class PizzaFactory {
+class Events {
 public:
-    virtual Pizza* creatPizza() = 0;
-    virtual ~PizzaFactory() {};
+    virtual void getEvent() = 0;
+    virtual ~Events() {};
 };
 
-class CheesePizzaFactory : public PizzaFactory {
+class Hotel : public Events {
 public:
-    Pizza* creatPizza() override {
-        return new UniversalPizza();
+    void getEvent() {
+        std::cout << "Booking Hotel" << std::endl;
     }
 };
-//==============================================================
-// Command
-enum class Colors {
-    RED,
-    ORANGE,
-    YELLOW,
-    GREEN,
-    CYAN,
-    BLUE,
-    VIOLET,
-    WHITE
+
+class Park : public Events {
+    void getEvent() {
+        std::cout << "Park visiting" << std::endl;
+    }
 };
 
-class Light {
+class Food : public Events {
 public:
-    Light() :state(false), color(Colors::WHITE) {};
-    void On() {
-        if (!state) {
-            state = true;
-        }
+    virtual void getEvent() = 0;
+    virtual ~Food() {};
+};
+
+class Dinner : public Food {
+public:
+    Dinner();
+    Dinner(const std::string& type) : _type("breakfast") {}
+    void getEvent() {
+        std::cout << "Food " << _type << std::endl;
     };
-
-    void Off() {
-        if (state) {
-            state = false;
-        }
-    };
-
-    void changeColor(Colors newColor) {
-        color = newColor;
-    }
-
-    bool getState() const {
-        return state;
-    }
-
 private:
-    bool state;
-    Colors color;
+    std::string _type;
 };
 
-class Command {
+class Lunch : public Food {
+public:
+    Lunch() : _type("lunch") {}
+    void getEvent() {
+        std::cout << "Food " << _type << std::endl;
+    };
+private:
+    std::string _type;
+};
+
+class Breakfast : public Food {
+public:
+    Breakfast() : _type("breakfast") {}
+    void getEvent() {
+        std::cout << "Food " << _type << std::endl;
+    };
+private:
+    std::string _type;
+};
+
+class Special : public Events {
+public:
+    virtual void getEvent() = 0;
+    virtual ~Special() {};
+};
+
+class Skating :public Special {
+public:
+    Skating();
+    Skating(const std::string& type) : _type("skating") {}
+    void getEvent() {
+        std::cout << _type << std::endl;
+    };
+private:
+    std::string _type;
+};
+
+class Circus :public Special {
+public:
+    Circus();
+    Circus(const std::string& type) : _type("circus") {}
+    void getEvent() {
+        std::cout << _type << std::endl;
+    };
+private:
+    std::string _type;
+};
+
+
+
+
+// Интерфейс строителя
+class Builder {
+public:
+    virtual void buildHotel() = 0;
+    virtual void buildPark() = 0;
+    virtual void buildFood() = 0;
+    virtual void buildSpecial() = 0;
+    virtual std::vector<Events*> getResult() = 0;
+};
+
+// Конкретный строитель
+class DayPlanBuilder : public Builder {
+public:
+    DayPlanBuilder() : _events({}) {}
+    void buildHotel() override {
+        _events.push_back(new Hotel);
+    }
+    void buildPark() override {
+        _events.push_back(new Park);
+    }
+    void buildFood() override {
+        
+        _events.push_back(new Breakfast);
+        _events.push_back(new Lunch);
+        _events.push_back(new Dinner);
+    }
+    void buildSpecial() override {
+        
+        _events.push_back(new Skating);
+        _events.push_back(new Circus);
+    }
+    std::vector<Events*> getResult() override {
+        return _events;
+    }
+private:
+    std::vector<Events*> _events;
+};
+
+// Класс, который будет использовать строитель для создания плана дня
+class DayPlanner {
+public:
+    void setBuilder(Builder* builder) {
+        _builder = builder;
+    }
+    std::vector<Events*> getDayPlan() {
+        _builder->buildHotel();
+        _builder->buildPark();
+        _builder->buildFood();
+        _builder->buildSpecial();
+        return _builder->getResult();
+    }
+private:
+    Builder* _builder;
+};
+
+//========================================================================
+
+
+// Implementor
+class DrawingImplementor {
+public:
+    virtual void drawRectangle(double) = 0;
+
+    virtual ~DrawingImplementor() {
+    }
+};
+
+// Abstraction
+class Shape {
 protected:
-    Light* light;
+    DrawingImplementor* implementor_;
 public:
-    virtual void chColor() = 0;
-
-    virtual ~Command() {};
-
-    void setLight(Light* newLight) {
-        light = newLight;
+    Shape(DrawingImplementor* implementor) : implementor_(implementor) {}
+    virtual void draw() = 0; // low-level
+    virtual void resize(double pct) = 0; // high-level
+    virtual ~Shape() {
+        delete implementor_;
     }
 };
 
-class ChangeColor : public Command {
-    Colors col;
-public:
-    ChangeColor(Colors color) : col(color) {};
 
-    void chColor() override {
-        light->changeColor(col);
+
+// Concrete Abstraction - Rectangle
+class Rectangle : public Shape {
+public:
+    Rectangle(DrawingImplementor* implementor) : Shape(implementor) {}
+    void draw() override {
+        implementor_->drawRectangle(10.0); // рисуем прямоугольник
+    }
+    void resize(double pct) override {
+        std::cout << "Resizing rectangle by " << pct << "%" << std::endl;
     }
 };
 
-class Invoker {
-    std::vector<Command*> donCom;
-    Light lig;
-    Command* com;
+
+
+// Concrete Implementor - рисование кистью
+class BrushDrawingImplementor : public DrawingImplementor {
 public:
-    Invoker() : com(nullptr) {}
-
-    virtual ~Invoker() {
-        for (Command* ptr : donCom)
-            delete ptr;
-    }
-
-    void on() {
-        lig.On();
-    }
-
-    void off() {
-        lig.Off();
-    }
-
-    void changeColor(Colors newColor) {
-        com = new ChangeColor(newColor);
-        com->setLight(&lig);
-        com->chColor();
-        donCom.push_back(com);
-    }
-    void show() {
-        std::cout << "Show:" << donCom.size() << std::endl;
-    }
-
-};
-//=======================================================
-// Decorator
-class Beverage {            
-public:
-    // virtual std::string getDescription() const ;
-    virtual double cost() const = 0;
-    virtual ~Beverage() {}
-};
-
-class HouseBlend : public Beverage {   
-public:
-    double cost() const override {
-        return 5.5;
+    void drawRectangle(double size) override {
+        std::cout << "Drawing rectangle with brush of size " << size << std::endl;
     }
 };
 
-class DarkRoast : public Beverage {  
+// Concrete Implementor - рисование карандашом
+class PencilDrawingImplementor : public DrawingImplementor {
 public:
-    double cost() const override {
-        return 6.0;
+    void drawRectangle(double size) override {
+        std::cout << "Drawing rectangle with pencil of size " << size << std::endl;
     }
 };
 
-class Decaf : public Beverage {    
-public:
-    double cost() const override {
-        return 7.3;
-    }
-};
-
-class Espresso : public Beverage {  
-public:
-    double cost() const override {
-        return 3.5;
-    }
-};
-
-class Decorator : public Beverage {
-    Beverage* _beverage;
-public:
-    Decorator(Beverage* bever) : _beverage(bever) {}
-    double cost() const override {
-        return _beverage->cost();
-    }
-};
-
-class AddSugar : public Decorator {
-
-    std::string _add;
-
-    double Sugar() const {
-        if (_add == "sugar") {
-            std::cout << "You choose additives: " << _add << "; Price:" << " 1.5" << std::endl;
-            return 1.5;
-        }
-        else if (_add == "without sugar") {
-            std::cout << "You choose additives: " << _add << std::endl;
-        }
-
-    }
-
-public:
-    AddSugar(Beverage* bever, std::string add) : Decorator(bever), _add(add) {}
-
-    double cost() const override {
-        Decorator::cost();
-        return Sugar();
-    }
-
-};
-
-class AddCinnamon : public Decorator {
-
-    std::string _add;
-
-    double Cinnamon() const {
-
-        std::cout << "You choose additives: " << _add << std::endl;
-        return 2.5;
-
-    }
-
-public:
-    AddCinnamon(Beverage* bever, std::string add) : Decorator(bever), _add(add) {}
-
-    double cost() const override {
-        Decorator::cost();
-        return Cinnamon();
-    }
+//===================================================================================
 
 
-};
+int main()
+{
 
-class AddChocolate : public Decorator {
+    DrawingImplementor* brushImplementor = new BrushDrawingImplementor();
+    Shape* brushRectangle = new Rectangle(brushImplementor);
+    brushRectangle->draw(); 
 
-    std::string _add;
+    DrawingImplementor* pencilImplementor = new PencilDrawingImplementor();
+    Shape* pencilRectangle = new Rectangle(pencilImplementor);
+    pencilRectangle->draw(); 
 
-    double Chocolate() const {
-
-        std::cout << "You choose additives: " << _add << std::endl;
-        return 2.5;
-
-    }
-
-public:
-    AddChocolate(Beverage* bever, std::string add) : Decorator(bever), _add(add) {}
-
-    double cost() const override {
-        Decorator::cost();
-        return Chocolate();
-    }
-};
+}
+    
+    
